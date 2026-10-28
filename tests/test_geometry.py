@@ -503,3 +503,19 @@ def test_shaft_passes_through_shank_crossbore(cnc_params: PurflingCutterParams) 
         f"shaft and shank crossbore interfere by {vol:.4f} mm³ — "
         f"crossbore is undersized or shaft outer diameter is oversized"
     )
+
+
+def test_assembly_parts_are_named(cnc_params_with_spacer: PurflingCutterParams) -> None:
+    """Every part of the assembly carries its name into the STEP (build123d writes a shape's
+    label as its product's name): the CNC package's part number, or a stock part's size."""
+    from gramil.assembly import build_assembly
+
+    p = cnc_params_with_spacer
+    names = [child.label for child in build_assembly(p).children]
+    assert all(names), names
+    assert names.count("GRM-06 blade retainer") == 4
+    assert names.count("GRM-07 blade") == 2
+    assert "channel spacer" in names
+    assert f"grub screw {p.grub_screw.thread}x{p.grub_screw.length:g}" in names
+    for number in ("GRM-01", "GRM-02", "GRM-03", "GRM-04", "GRM-05"):
+        assert any(name.startswith(number) for name in names), number
