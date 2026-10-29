@@ -208,21 +208,32 @@ def build_assembly(
     ex_bolt = ex(EX_BOLT)
     bolt = Pos(ex_bolt[0], ex_bolt[1], rod_bottom_z - bolt_tip_local_z + ex_bolt[2]) * bolt_local
 
-    return Compound(
-        children=[
-            shank,
-            shaft,
-            *stack,
-            grub,
-            plate,
-            washer,
-            captive,
-            mount,
-            tw,
-            bolt,
-            rod,
-        ]
-    )
+    # Each part named as the CNC package numbers it, the stock ones by their size, so the STEP
+    # carries the names (build123d writes a shape's label as its product's name) and a reader
+    # can tell the parts apart and the bought ones from those to make.
+    g, c, m = params.grub_screw, params.captive_screw, params.mount_screw
+    names = {
+        id(shank): "GRM-01 shank",
+        id(shaft): "GRM-02 shaft",
+        id(tw): "GRM-03 thumbwheel drive screw",
+        id(plate): "GRM-04 drive plate",
+        id(bolt): "GRM-05 depth-lock bolt",
+        id(grub): f"grub screw {g.thread}x{g.length:g}",
+        id(captive): f"pan-head screw {c.thread}x{c.thread_length:g}",
+        id(mount): f"pan-head screw {m.thread}x{m.thread_length:g}",
+        id(washer): f"flat washer {c.thread}",
+        id(rod): "push rod",
+    }
+    for part in stack:
+        names[id(part)] = (
+            "GRM-06 blade retainer" if part.wrapped.IsPartner(retainer_local.wrapped)
+            else "GRM-07 blade" if part.wrapped.IsPartner(blade_local.wrapped)
+            else "channel spacer"
+        )
+    children = [shank, shaft, *stack, grub, plate, washer, captive, mount, tw, bolt, rod]
+    for part in children:
+        part.label = names[id(part)]
+    return Compound(children=children)
 
 
 def main() -> None:
